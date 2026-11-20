@@ -1,0 +1,33 @@
+{{ range .Values.namespaces }}
+{{ $ns := . }}
+{{- if eq $ns "hotel-reservation" }}
+{{ range $.Values.testingEnvironments }}
+{{ $env := . }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ printf "%s-%s" $ns $env }}
+  labels:
+    # This label allows HTTPRoutes from the infra namespace to be attached to
+    # the Gateway.
+    shared-gateway-access: "true"
+  annotations:
+    # Make sure all workloads in the benchmark are meshed
+    linkerd.io/inject: enabled
+--- 
+{{ end }}
+{{ else }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $ns }}
+  labels:
+    # This label allows HTTPRoutes from the infra namespace to be attached to
+    # the Gateway.
+    shared-gateway-access: "true"
+  annotations:
+    # Make sure all workloads in the benchmark are meshed
+    linkerd.io/inject: enabled
+--- 
+{{- end }}
+{{- end }}

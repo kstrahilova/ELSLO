@@ -1,0 +1,80 @@
+hostName: tartarus
+domainName: example.com
+
+tls:
+  secretName: hotel-reservation-tls
+
+hotelReservation:
+  enabled: true
+  name: hotel-reservation
+  hrClient:
+    enabled: true
+    numThreads: "10"
+    numConns: "100"
+    duration: "300s"
+    rps: "30"
+  backends:
+    - name: frontend-hotel-reservation-a
+      weight: 50
+    - name: frontend-hotel-reservation-b
+      weight: 50
+
+hr-a:
+  global:
+    fullnameOverride: hotel-reservation-a
+    annotations: |
+      linkerd.io/inject: enabled
+  frontend:
+    container:
+      command: /go/bin/frontend
+      dockerRegistry: ghcr.io
+      image: kstrahilova/deathstarbenchfork/hotel-reservation
+      imageVersion: latest
+      imagePullPolicy: Always
+      ports:
+        - containerPort: 5000
+        - containerPort: 8081
+    configMaps:
+      - name: service-config.json
+        mountPath: /workspace/config.json
+        value: service-config
+    service:
+      labels:
+        mirror.linkerd.io/exported: "true"
+    ports:
+      - name: health
+        port: 8081
+        targetPort: 8081
+      - name: http
+        port: 5000
+        targetPort: 5000
+
+hr-b:
+  global:
+    fullnameOverride: hotel-reservation-b
+    annotations: |
+      linkerd.io/inject: enabled
+  frontend:
+    container:
+      command: /go/bin/frontend
+      dockerRegistry: ghcr.io
+      image: kstrahilova/deathstarbenchfork/hotel-reservation
+      imageVersion: latest
+      imagePullPolicy: Always
+      ports:
+        - containerPort: 5000
+        - containerPort: 8081
+    configMaps:
+      - name: service-config.json
+        mountPath: /workspace/config.json
+        value: service-config
+    service:
+      labels:
+        mirror.linkerd.io/exported: "true"
+    ports:
+      - name: health
+        port: 8081
+        targetPort: 8081
+      - name: http
+        port: 5000
+        targetPort: 5000

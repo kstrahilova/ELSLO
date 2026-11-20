@@ -1,0 +1,26 @@
+{{- if .Values.hotelReservation.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ printf "%s-frontend-gl-route" .Values.hotelReservation.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: hotel-reservation
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: {{ printf "Host(`%s.%s.%s`)" .Values.hotelReservation.name .Values.hostName .Values.domainName | quote }}
+      services:
+        {{- range .Values.hotelReservation.backends }}
+        - kind: Service
+          name: {{ .name }}
+          namespace: {{ $.Release.Namespace }}
+          port: 5000
+          weight: {{ .weight }}
+          nativeLB: true
+        {{- end }}
+  tls:
+    secretName: {{ .Values.tls.secretName }}
+{{- end }}

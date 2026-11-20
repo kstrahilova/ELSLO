@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: custom-controller-sa
+  namespace: custom-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: custom-controller-role
+rules:
+  - apiGroups: ["traefik.io"]
+    resources: ["ingressroutes"]
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+# This role binding allows "jane" to read pods in the "default" namespace.
+# You need to already have a Role named "pod-reader" in that namespace.
+kind: ClusterRoleBinding
+metadata:
+  name: custom-controller-crb
+subjects:
+  - kind: ServiceAccount
+    name: custom-controller-sa
+    namespace: custom-controller
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: ClusterRole #this must be Role or ClusterRole
+  name: custom-controller-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+{{- range $.Values.namespaces }}
+{{ $ns := . }}
+{{- if eq $ns "hotel-reservation" }}
+{{ range $.Values.testingEnvironments }}
+{{ $env := . }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: custom-controller-crb
+  namespace: {{ printf "%s-%s" $ns $env }}
+subjects:
+  - kind: ServiceAccount
+    name: custom-controller-sa
+    namespace: custom-controller
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: custom-controller-role
+  apiGroup: rbac.authorization.k8s.io
+--- 
+{{ end }}
+{{ else }}
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: custom-controller-crb
+  namespace: {{ $ns }}
+subjects:
+  - kind: ServiceAccount
+    name: custom-controller-sa
+    namespace: custom-controller
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: custom-controller-role
+  apiGroup: rbac.authorization.k8s.io
+---
+{{- end }}
+{{- end }}
+
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: custom-controller-prometheus-auth-policy
+  namespace: linkerd-viz
+spec:
+  requiredAuthenticationRefs:
+  - kind: ServiceAccount
+    name: custom-controller-sa
+    namespace: custom-controller
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: prometheus-admin
+---
+
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: custom-controller-metrics-api-auth-policy
+  namespace: linkerd-viz
+spec:
+  requiredAuthenticationRefs:
+  - kind: ServiceAccount
+    name: custom-controller-sa
+    namespace: custom-controller
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: metrics-api
+

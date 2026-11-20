@@ -1,0 +1,36 @@
+testingEnvironments:
+  - gl
+  # - gels
+  # - gl3
+  # - l3-rc
+
+baseImage:
+  name: 'elslo-builder'
+  tag: 'local'
+imagePullSecret: ""
+env:
+  ENVIRONMENT: "prod"
+  METRICS_ADDR: ":8080"
+  HEALTH_PROBE_BIND_ADDRESS: ":8081"
+  PROMETHEUS_ADDRESS: "http://prometheus.linkerd-viz.svc.cluster.local:9090/"
+  METRICS_API_ADDRESS: "metrics-api.linkerd-viz.svc.cluster.local:8085"
+  METRICS_TIME_WINDOW: 20s
+  PROMETHEUS_TIME_WINDOW: 10m
+  # # Defined in the deployment
+  # # Can be "latency", "l3"
+  # LATENCY_ESTIMATION_ALGORITHM: "l3"
+  # # Can be "decay", "ewma"
+  # AGGREGATION_ALGORITHM: "ewma"
+  # # Can be "exp", "poly"
+  # AGGREGATION_FUNCTION: "exp"
+  EXPONENTIAL_DECAY_PARAM: 0.2
+  POLYNOMIAL_DECAY_PARAM: 2
+  EWMA_DECAY_PARAM: "5s"
+  AGGREGATION_TIME_WINDOW: "5s"
+  SLOS: "{\"latency\": 200}"
+  L3_FAILURE_PENALTY: 300
+  FAILURE_PENALTY: 2000
+  FD_REFRESH_PERIOD: 2
+  # TODO: You might need to update this depending on your hotel reservations deployment
+  APPLICATION_TO_MANAGE: "hotel-reservation-frontend"
+

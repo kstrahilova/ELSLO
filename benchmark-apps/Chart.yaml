@@ -1,0 +1,21 @@
+apiVersion: v2
+name: benchmark-apps
+description: A Helm chart for Kubernetes
+
+type: application
+
+version: 0.1.0
+
+appVersion: "0.1.0"
+
+dependencies:
+  - name: hotel-reservation
+    alias: hr-a
+    version: 0.1.0
+    repository: file://../../../DeathStarBenchFork/hotelReservation/helm-chart/hotelreservation
+    condition: hotelReservation.enabled
+  - name: hotel-reservation
+    alias: hr-b
+    version: 0.1.0
+    repository: file://../../../DeathStarBenchFork/hotelReservation/helm-chart/hotelreservation
+    condition: hotelReservation.enabled

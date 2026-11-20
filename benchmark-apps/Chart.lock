@@ -1,0 +1,9 @@
+dependencies:
+- name: hotel-reservation
+  repository: file://../../../DeathStarBenchFork/hotelReservation/helm-chart/hotelreservation
+  version: 0.1.0
+- name: hotel-reservation
+  repository: file://../../../DeathStarBenchFork/hotelReservation/helm-chart/hotelreservation
+  version: 0.1.0
+digest: sha256:310762eb2b2e589b810aa653c52eb83295590d34b5ca62d21abc60fd1ebe1b48
+generated: "2026-11-20T10:51:40.767164304+01:00"

@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-controller-files
+data:
+  main.go: |-
+    {{- .Files.Get "app/main.go" | nindent 4 }}
+  go.mod: |-
+    {{- .Files.Get "app/go.mod" | nindent 4 }}
+  go.sum: |-
+    {{- .Files.Get "app/go.sum" | nindent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: controller-files
+data:
+  ingressroute_controller.go: |-
+    {{- .Files.Get "app/controller/ingressroute_controller.go" | nindent 4 }}
+  
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: types-files
+data:
+  weighted_replicas.go: |-
+    {{- .Files.Get "app/types/weighted_replicas.go" | nindent 4 }}
+  config.go: |-
+    {{- .Files.Get "app/types/config.go" | nindent 4 }}
+  metrics.go: |-
+    {{- .Files.Get "app/types/metrics.go" | nindent 4 }}
+  prometheus_histogram.go: |-
+    {{- .Files.Get "app/types/prometheus_histogram.go" | nindent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: latency-estimation-files
+data:
+  estimator_interface.go: |-
+    {{- .Files.Get "app/latency-estimation/estimator_interface.go" | nindent 4 }}
+  random_estimator.go: |-
+    {{- .Files.Get "app/latency-estimation/random_estimator.go" | nindent 4 }}
+  elslo_estimator.go: |-
+    {{- .Files.Get "app/latency-estimation/elslo_estimator.go" | nindent 4 }}
+  l3_estimator.go: |-
+    {{- .Files.Get "app/latency-estimation/l3_estimator.go" | nindent 4 }}
+  els_estimator.go: |-
+    {{- .Files.Get "app/latency-estimation/els_estimator.go" | nindent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-files
+data:
+  metrics_common.go: |-
+    {{- .Files.Get "app/metrics/metrics_common.go" | nindent 4 }}
+  prometheus_metrics.go: |-
+    {{- .Files.Get "app/metrics/prometheus_metrics.go" | nindent 4 }}
+  metrics_api_metrics.go: |-
+    {{- .Files.Get "app/metrics/metrics_api_metrics.go" | nindent 4 }}
+  reachability_metrics.go: |-
+    {{- .Files.Get "app/metrics/reachability_metrics.go" | nindent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aggregation-files
+data:
+  algorithm_interface.go: |-
+    {{- .Files.Get "app/aggregation-algo/algorithm_interface.go" | nindent 4 }}
+  forward_decay_algorithm.go: |-
+    {{- .Files.Get "app/aggregation-algo/forward_decay_algorithm.go" | nindent 4 }}
+  ewma_algorithm.go: |-
+    {{- .Files.Get "app/aggregation-algo/ewma_algorithm.go" | nindent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-api-client-files
+data:
+  client.go: |-
+    {{- .Files.Get "app/metrics-api-client/client.go" | nindent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-api-client-proto-files
+data:
+  viz.proto: |-
+    {{- .Files.Get "app/metrics-api-client/proto/viz.proto" | nindent 4 }}
+
+---

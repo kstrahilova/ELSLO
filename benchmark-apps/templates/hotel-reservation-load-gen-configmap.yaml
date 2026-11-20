@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: load-gen-files
+data:
+  hotel-reservation.lua: |-
+    {{- .Files.Get "benchmark-load-gen/hotel-reservation/mixed-workload_type_1.lua" | nindent 4 }}
+  gen-load.sh: |-
+    {{- .Files.Get "benchmark-load-gen/hotel-reservation/gen-load.sh" | nindent 4 }}
+---

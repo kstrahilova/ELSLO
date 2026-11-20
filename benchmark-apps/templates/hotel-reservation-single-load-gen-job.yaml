@@ -1,0 +1,56 @@
+---
+{{- if .Values.hotelReservation.enabled }}
+{{- if .Values.hotelReservation.hrClient }}
+{{- if .Values.hotelReservation.hrClient.enabled }}
+{{ $hr := .Values.hotelReservation.hrClient }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ printf "%s-benchmark" $.Values.hotelReservation.name }}
+  labels:
+    death-star-project: hotel-res
+    app: hr-client
+spec:
+  schedule: '*/5 * * * *'
+  successfulJobsHistoryLimit: 2
+  jobTemplate:
+    metadata:
+      labels:
+        death-star-project: hotel-res
+        app: {{ printf "%s" $.Values.hotelReservation.name }}
+      name: {{ printf "%s-benchmark" $.Values.hotelReservation.name }}
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          volumes:
+          - name: load-gen-files
+            configMap:
+              name: load-gen-files
+              defaultMode: 0777
+          restartPolicy: Never
+          containers:
+          - name: hr-client
+            image: deathstarbench/wrk2-client
+            volumeMounts:
+            - name: load-gen-files
+              mountPath: /home/load-gen
+            args: ["/bin/sh", "-c", "cd /home/load-gen && ./gen-load.sh"]
+            env:
+            - name: SERVICE_URL
+              value: {{ printf "https://%s.%s.%s:443" $.Values.hotelReservation.name $.Values.hostName $.Values.domainName }}
+            - name: NUM_THREADS
+              value: {{ $hr.numThreads | quote }}
+            - name: NUM_CONNECTIONS
+              value: {{ $hr.numConns | quote }}
+            - name: DURATION
+              value: {{ $hr.duration | quote }}
+            - name: RPS
+              value: {{ $hr.rps | quote }}
+            - name: REQUEST_SEED
+              value: "1"
+            imagePullPolicy: Always
+---
+{{- end }}
+{{- end }}
+{{- end }}

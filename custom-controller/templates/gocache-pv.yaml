@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gocache-pv
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 512Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /data/go-cache
+  persistentVolumeReclaimPolicy: Retain

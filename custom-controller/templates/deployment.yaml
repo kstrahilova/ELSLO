@@ -1,0 +1,226 @@
+{{- range $env := .Values.testingEnvironments }}
+{{- if and (ne $env "gn") (ne $env "ngl") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "custom-controller-%s" $env }}
+  labels:
+    app.kubernetes.io/name: 'custom-controller'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ printf "custom-controller-%s" $env }}
+  template:
+    metadata:
+      annotations:
+        checksum/main.go: {{ $.Files.Get "app/main.go" | sha256sum }}
+        checksum/go.mod: {{ $.Files.Get "app/go.mod" | sha256sum }}
+        checksum/go.sum: {{ $.Files.Get "app/go.sum" | sha256sum }}
+        checksum/controller_ingressroute_controller.go: {{ $.Files.Get "app/controller/ingressroute_controller.go" | sha256sum }}
+        checksum/types_weighted_replicas.go: {{ $.Files.Get "app/types/weighted_replicas.go" | sha256sum }}
+        checksum/types_metrics.go: {{ $.Files.Get "app/types/metrics.go" | sha256sum }}
+        checksum/types_config.go: {{ $.Files.Get "app/types/config.go" | sha256sum }}
+        checksum/types_prometheus_histogram.go: {{ $.Files.Get "app/types/prometheus_histogram.go" | sha256sum }}
+        checksum/latency_estimation_estimator_interface.go: {{ $.Files.Get "app/latency-estimation/estimator_interface.go" | sha256sum }}
+        checksum/latency_estimation_random_estimator.go: {{ $.Files.Get "app/latency-estimation/random_estimator.go" | sha256sum }}
+        {{- if or (eq $env "gl3") (eq $env "l3-rc") }}
+        checksum/latency_estimation_l3_estimator.go: {{ $.Files.Get "app/latency-estimation/l3_estimator.go" | sha256sum }}
+        {{- else if eq $env "gels" }}
+        checksum/latency_estimation_els_estimator.go: {{ $.Files.Get "app/latency-estimation/els_estimator.go" | sha256sum }}
+        {{- else }}
+        checksum/latency_estimation_elslo_estimator.go: {{ $.Files.Get "app/latency-estimation/elslo_estimator.go" | sha256sum }}
+        {{- end }}
+        checksum/metrics_metrics_common.go: {{ $.Files.Get "app/metrics/metrics_common.go" | sha256sum }}
+        checksum/metrics_prometheus_metrics.go: {{ $.Files.Get "app/metrics/prometheus_metrics.go" | sha256sum }}
+        checksum/aggregation_algo_algorithm_interface.go: {{ $.Files.Get "app/aggregation-algo/algorithm_interface.go" | sha256sum }}
+        checksum/aggregation_algo_forward_decay_algorithm.go: {{ $.Files.Get "app/aggregation-algo/forward_decay_algorithm.go" | sha256sum }}
+        checksum/aggregation_algo_ewma_algorithm.go: {{ $.Files.Get "app/aggregation-algo/ewma_algorithm.go" | sha256sum }}
+        checksum/metrics_metrics_api_metrics.go: {{ $.Files.Get "app/metrics/metrics_api_metrics.go" | sha256sum }}
+        checksum/metrics_reachability_metrics.go: {{ $.Files.Get "app/metrics/reachability_metrics.go" | sha256sum }}
+        checksum/metrics_api_client_client.go: {{ $.Files.Get "app/metrics-api-client/client.go" | sha256sum }}
+        checksum/metrics_api_client_viz_proto.go: {{ $.Files.Get "app/metrics-api-client/proto/viz.proto" | sha256sum }}
+        checksum/controller_go.mod: {{ $.Files.Get "app/go.mod" | sha256sum }}
+        checksum/controller_go.sum: {{ $.Files.Get "app/go.sum" | sha256sum }}
+        linkerd.io/inject: enabled
+      labels:
+        app.kubernetes.io/name: {{ printf "custom-controller-%s" $env }}
+    spec:
+      serviceAccountName: custom-controller-sa
+      {{- if $.Values.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ $.Values.imagePullSecret }}
+      {{- end }}
+      initContainers:
+        - name: 'builder'
+          image: {{ $.Values.baseImage.name }}:{{ $.Values.baseImage.tag }}
+          workingDir: /app
+          command:
+            - '/bin/sh'
+            - '-c'
+            - |
+              cd metrics-api-client
+              cp -Lr ro/* ./
+              protoc --go_out=. --go-grpc_out=. proto/viz.proto
+              cd ..
+              go install -v -x main.go
+          volumeMounts:
+            - mountPath: /go
+              name: gofiles
+            - mountPath: /app
+              name: files
+            - mountPath: /root/.cache/go-build
+              name: gocache
+            - mountPath: /app/controller
+              name: controller-files
+            - mountPath: /app/types
+              name: types-files
+            - mountPath: /app/latency-estimation
+              name: latency-estimation-files
+            - mountPath: /app/metrics
+              name: metrics-files
+            - mountPath: /app/aggregation-algo
+              name: aggregation-files
+            - mountPath: /app/metrics-api-client
+              name: metrics-api-client-files
+            - mountPath: /app/metrics-api-client/ro
+              name: metrics-api-client-files-ro
+            - mountPath: /app/metrics-api-client/proto
+              name: metrics-api-client-proto-files
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 800m
+      containers:
+        - name: 'controller'
+          image: 'golang:1.25.7-alpine'
+          ports:
+          - containerPort: 8080
+            name: controller
+          - containerPort: 8081
+            name: health
+          workingDir: /app
+          command:
+            - /go/bin/main
+            - --dev=false
+          volumeMounts:
+            - mountPath: /go
+              name: gofiles
+            - mountPath: /app
+              name: files
+            - mountPath: /app/controller
+              name: controller-files
+            - mountPath: /app/types
+              name: types-files
+            - mountPath: /app/latency-estimation
+              name: latency-estimation-files
+            - mountPath: /app/metrics
+              name: metrics-files
+            - mountPath: /app/metrics-api-client
+              name: metrics-api-client-files
+            - mountPath: /app/aggregation-algo
+              name: aggregation-files
+            - mountPath: /app/metrics-api-client/proto
+              name: metrics-api-client-proto-files
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 2
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 2
+            periodSeconds: 60
+          resources:
+            requests:
+              cpu: 100m
+              memory: 40Mi
+            limits:
+              cpu: 400m
+              memory: 80Mi
+          env:
+            - name: TESTING_ENVIRONMENT
+              value: {{ $env | quote }}
+          {{- if eq $env "gl3" }}
+            # L3 without Rate Control
+            - name: LATENCY_ESTIMATION_ALGORITHM
+              value: "l3"
+            - name: AGGREGATION_ALGORITHM
+              value: "ewma"
+            - name: AGGREGATION_FUNCTION
+              value: "exp"
+          {{- else if eq $env "l3-rc" }}
+            # L3 with Rate Control
+            - name: LATENCY_ESTIMATION_ALGORITHM
+              value: "l3"
+            - name: AGGREGATION_ALGORITHM
+              value: "ewma"
+            - name: AGGREGATION_FUNCTION
+              value: "exp"
+            - name: RATE_CONTROLLER_ENABLED
+              value: "true"
+          {{- else if eq $env "gels" }}
+            # ELS
+            - name: LATENCY_ESTIMATION_ALGORITHM
+              value: "els"
+            - name: AGGREGATION_ALGORITHM
+              value: "decay"
+              # Can be "exp", "poly"
+            - name: AGGREGATION_FUNCTION
+              value: "exp"
+          {{- else }}
+            # ELSLO
+            - name: LATENCY_ESTIMATION_ALGORITHM
+              value: "latency"
+            - name: AGGREGATION_ALGORITHM
+              value: "decay"
+              # Can be "exp", "poly"
+            - name: AGGREGATION_FUNCTION
+              value: "exp"
+          {{- end }}
+          {{- if $.Values.env }}
+          {{- range $key, $value := $.Values.env }}
+            - name: {{ $key | quote }}
+              value: {{ $value | quote }}
+          {{- end }}
+          {{- end }}
+      volumes:
+        - name: files
+          configMap:
+            name: custom-controller-files
+        - name: controller-files
+          configMap:
+            name: controller-files
+        - name: types-files
+          configMap:
+            name: types-files
+        - name: latency-estimation-files
+          configMap:
+            name: latency-estimation-files
+        - name: metrics-files
+          configMap:
+            name: metrics-files
+        - name: aggregation-files
+          configMap:
+            name: aggregation-files
+        - name: metrics-api-client-files
+          emptyDir: {}
+        - name: metrics-api-client-files-ro
+          configMap:
+            name: metrics-api-client-files
+        - name: metrics-api-client-proto-files
+          configMap:
+            name: metrics-api-client-proto-files
+        - name: gocache
+          persistentVolumeClaim:
+            claimName: gocache-pvc
+        - name: gofiles
+          emptyDir: {}
+---
+{{- end }}
+{{- end }}
